@@ -1,19 +1,34 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Sun, Moon } from 'lucide-react';
+import { Plus, Sun, Moon, LogOut, User } from 'lucide-react';
 import HabitCard from '../components/HabitCard';
 import AddHabitModal from '../components/AddHabitModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import StatsDashboard from '../components/StatsDashboard';
 import MotivationalGreeting from '../components/MotivationalGreeting';
 import Confetti from '../components/Confetti';
+import GuestWarningBanner from '../components/GuestWarningBanner';
+import SettingsMenu from '../components/SettingsMenu';
 import { StarDoodle, RocketDoodle, TrophyDoodle, SmileDoodle } from '../components/Doodles';
+import { useFirebaseHabits } from '../hooks/useFirebaseHabits';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 const Home = () => {
-  const [habits, setHabits] = useLocalStorage('habits', []);
+  const { currentUser, isGuest, logout, exitGuestMode, deleteAccount } = useAuth();
+  
+  // Use Firebase for authenticated users, localStorage for guests
+  const firebaseHabits = useFirebaseHabits(currentUser?.uid);
+  const [localHabits, setLocalHabits] = useLocalStorage('guest_habits', []);
+  
+  // Choose data source based on auth status
+  const habits = isGuest ? localHabits : firebaseHabits.habits;
+  const loading = isGuest ? false : firebaseHabits.loading;
+  const error = isGuest ? null : firebaseHabits.error;
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, habitId: null, habitName: '' });
+  const [deleteAccountModal, setDeleteAccountModal] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -39,45 +54,78 @@ const Home = () => {
     setIsDark(!isDark);
   };
 
-  const handleAddHabit = (name, color) => {
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Failed to logout:', err);
+    }
+  };
+
+  const handleAddHabit = async (name, color) => {
     const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
     const randomColor = color || colors[Math.floor(Math.random() * colors.length)];
     
-    const newHabit = {
-      id: Date.now().toString(),
-      name,
-      color: randomColor,
-      completedDates: [],
-      createdAt: new Date().toISOString(),
-    };
-    setHabits([...habits, newHabit]);
+    if (isGuest) {
+      // Guest mode - use local storage
+      const newHabit = {
+        id: Date.now().toString(),
+        name,
+        color: randomColor,
+        completedDates: [],
+        createdAt: new Date().toISOString(),
+      };
+      setLocalHabits([...localHabits, newHabit]);
+    } else {
+      // Authenticated - use Firebase
+      try {
+        await firebaseHabits.addHabit({
+          name,
+          color: randomColor,
+          completedDates: [],
+        });
+      } catch (err) {
+        console.error('Failed to add habit:', err);
+        alert('Failed to add habit. Please try again.');
+      }
+    }
   };
 
-  const handleToggleHabit = (id) => {
+  const handleToggleHabit = async (id) => {
     const today = new Date().toISOString().split('T')[0];
-    setHabits(
-      habits.map((habit) => {
-        if (habit.id === id) {
-          const completedDates = habit.completedDates || [];
-          const isCompleted = completedDates.includes(today);
+    
+    if (isGuest) {
+      // Guest mode - update local storage
+      setLocalHabits(
+        localHabits.map((habit) => {
+          if (habit.id === id) {
+            const completedDates = habit.completedDates || [];
+            const isCompleted = completedDates.includes(today);
 
-          if (isCompleted) {
-            // Remove today's completion
-            return {
-              ...habit,
-              completedDates: completedDates.filter((date) => date !== today),
-            };
-          } else {
-            // Add today's completion
-            return {
-              ...habit,
-              completedDates: [...completedDates, today],
-            };
+            if (isCompleted) {
+              return {
+                ...habit,
+                completedDates: completedDates.filter((date) => date !== today),
+              };
+            } else {
+              return {
+                ...habit,
+                completedDates: [...completedDates, today],
+              };
+            }
           }
-        }
-        return habit;
-      })
-    );
+          return habit;
+        })
+      );
+    } else {
+      // Authenticated - use Firebase
+      try {
+        await firebaseHabits.toggleHabitCompletion(id, today);
+      } catch (err) {
+        console.error('Failed to toggle habit:', err);
+        alert('Failed to update habit. Please try again.');
+      }
+    }
   };
 
   const handleDeleteHabit = (id) => {
@@ -91,10 +139,55 @@ const Home = () => {
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (confirmModal.habitId) {
-      setHabits(habits.filter((habit) => habit.id !== confirmModal.habitId));
-      setConfirmModal({ isOpen: false, habitId: null, habitName: '' });
+      if (isGuest) {
+        // Guest mode - update local storage
+        setLocalHabits(localHabits.filter((habit) => habit.id !== confirmModal.habitId));
+        setConfirmModal({ isOpen: false, habitId: null, habitName: '' });
+      } else {
+        // Authenticated - use Firebase
+        try {
+          await firebaseHabits.deleteHabit(confirmModal.habitId);
+          setConfirmModal({ isOpen: false, habitId: null, habitName: '' });
+        } catch (err) {
+          console.error('Failed to delete habit:', err);
+          alert('Failed to delete habit. Please try again.');
+        }
+      }
+    }
+  };
+
+  const [showAuthPage, setShowAuthPage] = useState(false);
+
+  const handleShowSignUp = () => {
+    exitGuestMode();
+    // The App will automatically show AuthPage when guest mode is exited
+  };
+
+  const handleShowLogin = () => {
+    exitGuestMode();
+  };
+
+  const handleDeleteAccountClick = () => {
+    setDeleteAccountModal(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+      // User will be automatically logged out and redirected
+      setDeleteAccountModal(false);
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      
+      // Check if re-authentication is needed
+      if (err.code === 'auth/requires-recent-login') {
+        alert('For security, please log out and log back in before deleting your account.');
+      } else {
+        alert('Failed to delete account. Please try again or contact support.');
+      }
+      setDeleteAccountModal(false);
     }
   };
 
@@ -130,30 +223,79 @@ const Home = () => {
                 HabitDaily
               </motion.h1>
             </motion.div>
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 15 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDark ? (
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                >
-                  <Sun className="w-5 h-5 text-yellow-500" />
-                </motion.div>
-              ) : (
-                <Moon className="w-5 h-5 text-gray-700" />
+            <div className="flex items-center gap-3">
+              {/* User Info */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {isGuest 
+                    ? 'Guest User' 
+                    : (currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User')
+                  }
+                </span>
+              </div>
+
+              {/* Theme Toggle */}
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label="Toggle theme"
+              >
+                {isDark ? (
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Sun className="w-5 h-5 text-yellow-500" />
+                  </motion.div>
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-700" />
+                )}
+              </motion.button>
+
+              {/* Settings Menu - Only show for authenticated users */}
+              {!isGuest && (
+                <SettingsMenu 
+                  user={currentUser}
+                  onDeleteAccount={handleDeleteAccountClick}
+                  onLogout={handleLogout}
+                />
               )}
-            </motion.button>
+            </div>
           </div>
         </div>
       </nav>
 
+      {/* Guest Warning Banner */}
+      {isGuest && (
+        <GuestWarningBanner 
+          onSignUp={handleShowSignUp}
+          onLogin={handleShowLogin}
+        />
+      )}
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your habits...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
         {/* Motivational Greeting */}
         {habits.length > 0 && (
           <MotivationalGreeting
@@ -301,6 +443,8 @@ const Home = () => {
             </AnimatePresence>
           </div>
         )}
+          </>
+        )}
       </main>
 
       {/* Add Habit Modal */}
@@ -310,7 +454,7 @@ const Home = () => {
         onAdd={handleAddHabit}
       />
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Delete Habit */}
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, habitId: null, habitName: '' })}
@@ -318,6 +462,19 @@ const Home = () => {
         title="Delete Habit?"
         message={`Are you sure you want to delete "${confirmModal.habitName}"? This action cannot be undone and all your progress will be lost.`}
         confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        preventBackdropClose={true}
+      />
+
+      {/* Confirmation Modal - Delete Account */}
+      <ConfirmationModal
+        isOpen={deleteAccountModal}
+        onClose={() => setDeleteAccountModal(false)}
+        onConfirm={confirmDeleteAccount}
+        title="Delete Account?"
+        message="⚠️ WARNING: This will permanently delete your account and ALL your habits. This action cannot be undone! Are you absolutely sure?"
+        confirmText="Yes, Delete My Account"
         cancelText="Cancel"
         type="danger"
         preventBackdropClose={true}
