@@ -3,11 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sun, Moon } from 'lucide-react';
 import HabitCard from '../components/HabitCard';
 import AddHabitModal from '../components/AddHabitModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import StatsDashboard from '../components/StatsDashboard';
+import MotivationalGreeting from '../components/MotivationalGreeting';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const Home = () => {
   const [habits, setHabits] = useLocalStorage('habits', []);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, habitId: null, habitName: '' });
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -28,10 +32,14 @@ const Home = () => {
     setIsDark(!isDark);
   };
 
-  const handleAddHabit = (name) => {
+  const handleAddHabit = (name, color) => {
+    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
+    const randomColor = color || colors[Math.floor(Math.random() * colors.length)];
+    
     const newHabit = {
       id: Date.now().toString(),
       name,
+      color: randomColor,
       completedDates: [],
       createdAt: new Date().toISOString(),
     };
@@ -66,20 +74,37 @@ const Home = () => {
   };
 
   const handleDeleteHabit = (id) => {
-    if (window.confirm('Are you sure you want to delete this habit?')) {
-      setHabits(habits.filter((habit) => habit.id !== id));
+    const habit = habits.find(h => h.id === id);
+    if (habit) {
+      setConfirmModal({
+        isOpen: true,
+        habitId: id,
+        habitName: habit.name,
+      });
+    }
+  };
+
+  const confirmDelete = () => {
+    if (confirmModal.habitId) {
+      setHabits(habits.filter((habit) => habit.id !== confirmModal.habitId));
+      setConfirmModal({ isOpen: false, habitId: null, habitName: '' });
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Navbar */}
-      <nav className="glass border-b border-white/20 dark:border-gray-700/20 sticky top-0 z-30 backdrop-blur-md">
+      <nav className="glass border-b border-white/20 dark:border-gray-700/20 sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-gray-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              HabitDaily
-            </h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">HD</span>
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                HabitDaily
+              </h1>
+            </div>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -97,55 +122,98 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-            Your Habits
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Build consistency, one day at a time
-          </p>
-        </div>
+        {/* Motivational Greeting */}
+        {habits.length > 0 && (
+          <MotivationalGreeting
+            completionRate={
+              habits.length > 0
+                ? Math.round(
+                    (habits.filter(h => h.completedDates?.includes(new Date().toISOString().split('T')[0])).length /
+                      habits.length) *
+                      100
+                  )
+                : 0
+            }
+            totalHabits={habits.length}
+          />
+        )}
 
-        {/* Add Habit Button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsModalOpen(true)}
-          className="mb-6 w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add New Habit</span>
-        </motion.button>
+        {/* Stats Dashboard */}
+        {habits.length > 0 && <StatsDashboard habits={habits} />}
+
+        {/* Header Section */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                Your Habits
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Build consistency, one day at a time
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsModalOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Habit</span>
+            </motion.button>
+          </div>
+
+          {/* Mobile Add Habit Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsModalOpen(true)}
+            className="sm:hidden w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 mb-6"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add New Habit</span>
+          </motion.button>
+        </div>
 
         {/* Habits Grid */}
         {habits.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-center py-16"
           >
-            <div className="glass rounded-2xl p-8 md:p-12 max-w-md mx-auto">
-              <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
-                No habits yet. Start building your routine!
-              </p>
-              <button
+            <div className="glass rounded-2xl p-8 md:p-12 max-w-md mx-auto bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+              <div className="mb-6">
+                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <Plus className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                  Start Your Journey
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-lg mb-6">
+                  Create your first habit and begin building consistency!
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setIsModalOpen(true)}
-                className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200"
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Add Your First Habit
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <AnimatePresence mode="popLayout">
-              {habits.map((habit) => (
+              {habits.map((habit, index) => (
                 <HabitCard
                   key={habit.id}
                   habit={habit}
                   onToggle={handleToggleHabit}
                   onDelete={handleDeleteHabit}
+                  color={habit.color}
                 />
               ))}
             </AnimatePresence>
@@ -158,6 +226,19 @@ const Home = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddHabit}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, habitId: null, habitName: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Habit?"
+        message={`Are you sure you want to delete "${confirmModal.habitName}"? This action cannot be undone and all your progress will be lost.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        preventBackdropClose={true}
       />
     </div>
   );
