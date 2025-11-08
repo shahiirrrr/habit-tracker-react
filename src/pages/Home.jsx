@@ -62,16 +62,18 @@ const Home = () => {
     }
   };
 
-  const handleAddHabit = async (name, color) => {
+  const handleAddHabit = async (name, color, emoji) => {
     const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
-    const randomColor = color || colors[Math.floor(Math.random() * colors.length)];
+    const selectedColor = color || colors[Math.floor(Math.random() * colors.length)];
+    const selectedEmoji = emoji || '🎯';
     
     if (isGuest) {
       // Guest mode - use local storage
       const newHabit = {
         id: Date.now().toString(),
         name,
-        color: randomColor,
+        color: selectedColor,
+        emoji: selectedEmoji,
         completedDates: [],
         createdAt: new Date().toISOString(),
       };
@@ -81,7 +83,8 @@ const Home = () => {
       try {
         await firebaseHabits.addHabit({
           name,
-          color: randomColor,
+          color: selectedColor,
+          emoji: selectedEmoji,
           completedDates: [],
         });
       } catch (err) {

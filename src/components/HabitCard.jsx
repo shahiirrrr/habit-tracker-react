@@ -93,7 +93,18 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) =
             <h3 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100 truncate">
               {habit.name}
             </h3>
-            <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${gradientClass}`} />
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              whileHover={{ scale: 1.2, rotate: 10 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="flex items-center gap-2"
+            >
+              {habit.emoji && (
+                <span className="text-2xl">{habit.emoji}</span>
+              )}
+              <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${gradientClass}`} />
+            </motion.div>
           </div>
           
           {/* Stats Row */}

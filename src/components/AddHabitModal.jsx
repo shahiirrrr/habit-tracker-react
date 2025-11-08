@@ -4,7 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 
 const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
   const [habitName, setHabitName] = useState('');
+  const [selectedColor, setSelectedColor] = useState('blue');
+  const [selectedEmoji, setSelectedEmoji] = useState('🎯');
   const inputRef = useRef(null);
+
+  const colors = [
+    { name: 'blue', class: 'bg-blue-500' },
+    { name: 'green', class: 'bg-green-500' },
+    { name: 'purple', class: 'bg-purple-500' },
+    { name: 'orange', class: 'bg-orange-500' },
+    { name: 'pink', class: 'bg-pink-500' },
+    { name: 'indigo', class: 'bg-indigo-500' },
+  ];
+
+  const emojis = ['🎯', '💪', '📚', '🏃', '💧', '🧘', '🎨', '✍️', '🎵', '🌱', '⭐', '🔥', '💡', '🚀', '❤️', '🍎'];
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -15,8 +28,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (habitName.trim()) {
-      onAdd(habitName.trim());
+      onAdd(habitName.trim(), selectedColor, selectedEmoji);
       setHabitName('');
+      setSelectedColor('blue');
+      setSelectedEmoji('🎯');
       onClose();
     }
   };
@@ -76,6 +91,51 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
                     placeholder="e.g., Drink 8 glasses of water"
                     className="w-full px-4 py-3 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
+                </div>
+
+                {/* Emoji Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Choose Icon
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {emojis.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setSelectedEmoji(emoji)}
+                        className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-200 ${
+                          selectedEmoji === emoji
+                            ? 'bg-blue-500 scale-110 shadow-lg'
+                            : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Choose Color
+                  </label>
+                  <div className="flex gap-3">
+                    {colors.map((color) => (
+                      <button
+                        key={color.name}
+                        type="button"
+                        onClick={() => setSelectedColor(color.name)}
+                        className={`w-10 h-10 rounded-full ${color.class} transition-all duration-200 ${
+                          selectedColor === color.name
+                            ? 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-gray-400 scale-110'
+                            : 'hover:scale-105'
+                        }`}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-2">
