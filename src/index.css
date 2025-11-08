@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-white/20 dark:border-gray-700/20;
+  }
+  
+  .neumorphism {
+    @apply bg-gray-100 dark:bg-gray-800 shadow-lg;
+  }
+  
+  .neumorphism-pressed {
+    @apply bg-gray-200 dark:bg-gray-700 shadow-inner;
+  }
+}
+
