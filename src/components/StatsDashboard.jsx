@@ -65,28 +65,60 @@ const StatsDashboard = ({ habits }) => {
         return (
           <motion.div
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="glass rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-200"
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ 
+              delay: index * 0.1,
+              type: "spring",
+              stiffness: 200,
+              damping: 15
+            }}
+            whileHover={{ 
+              scale: 1.05, 
+              y: -5,
+              transition: { duration: 0.2 }
+            }}
+            className="glass rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-200 cursor-pointer"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                   {stat.label}
                 </p>
-                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                <motion.p
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: index * 0.1 + 0.2, type: "spring" }}
+                  className="text-2xl font-bold text-gray-800 dark:text-gray-100"
+                >
                   {stat.value}
-                </p>
+                </motion.p>
                 {stat.subtitle && (
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: index * 0.1 + 0.3 }}
+                    className="text-xs text-gray-500 dark:text-gray-500 mt-1"
+                  >
                     {stat.subtitle}
-                  </p>
+                  </motion.p>
                 )}
               </div>
-              <div className={`${stat.bgColor} p-3 rounded-lg`}>
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  delay: index * 0.2,
+                  ease: 'easeInOut'
+                }}
+                className={`${stat.bgColor} p-3 rounded-lg`}
+              >
                 <Icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         );

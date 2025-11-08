@@ -6,17 +6,24 @@ import AddHabitModal from '../components/AddHabitModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import StatsDashboard from '../components/StatsDashboard';
 import MotivationalGreeting from '../components/MotivationalGreeting';
+import Confetti from '../components/Confetti';
+import { StarDoodle, RocketDoodle, TrophyDoodle, SmileDoodle } from '../components/Doodles';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const Home = () => {
   const [habits, setHabits] = useLocalStorage('habits', []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, habitId: null, habitName: '' });
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+
+  const handleCelebrate = () => {
+    setConfettiTrigger(prev => prev + 1);
+  };
 
   // Apply theme to document
   useEffect(() => {
@@ -97,25 +104,50 @@ const Home = () => {
       <nav className="glass border-b border-white/20 dark:border-gray-700/20 sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-gray-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="flex items-center gap-2"
+            >
+              <motion.div
+                animate={{ 
+                  rotate: [0, 360],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  duration: 3, 
+                  repeat: Infinity, 
+                  ease: 'easeInOut'
+                }}
+                className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"
+              >
                 <span className="text-white font-bold text-sm">HD</span>
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              >
                 HabitDaily
-              </h1>
-            </div>
-            <button
+              </motion.h1>
+            </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 15 }}
+              whileTap={{ scale: 0.9 }}
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
               aria-label="Toggle theme"
             >
               {isDark ? (
-                <Sun className="w-5 h-5 text-yellow-500" />
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                </motion.div>
               ) : (
                 <Moon className="w-5 h-5 text-gray-700" />
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
       </nav>
@@ -182,23 +214,72 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-16"
           >
-            <div className="glass rounded-2xl p-8 md:p-12 max-w-md mx-auto bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-              <div className="mb-6">
-                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <div className="glass rounded-2xl p-8 md:p-12 max-w-md mx-auto bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 relative overflow-hidden">
+              {/* Floating Doodles */}
+              <motion.div
+                className="absolute top-4 left-4 text-yellow-400 opacity-60"
+                animate={{ 
+                  y: [0, -10, 0],
+                  rotate: [0, 10, -10, 0]
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <StarDoodle className="w-12 h-12" />
+              </motion.div>
+              <motion.div
+                className="absolute top-4 right-4 text-pink-400 opacity-60"
+                animate={{ 
+                  y: [0, -15, 0],
+                  rotate: [0, -15, 15, 0]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+              >
+                <RocketDoodle className="w-12 h-12" />
+              </motion.div>
+              <motion.div
+                className="absolute bottom-4 left-8 text-green-400 opacity-60"
+                animate={{ 
+                  y: [0, -8, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+              >
+                <SmileDoodle className="w-10 h-10" />
+              </motion.div>
+
+              <div className="mb-6 relative z-10">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center"
+                >
                   <Plus className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-                  Start Your Journey
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-lg mb-6">
+                </motion.div>
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2"
+                >
+                  Start Your Journey! 🚀
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-gray-600 dark:text-gray-400 text-lg mb-6"
+                >
                   Create your first habit and begin building consistency!
-                </p>
+                </motion.p>
               </div>
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, rotate: 2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsModalOpen(true)}
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 relative z-10"
               >
                 Add Your First Habit
               </motion.button>
@@ -214,6 +295,7 @@ const Home = () => {
                   onToggle={handleToggleHabit}
                   onDelete={handleDeleteHabit}
                   color={habit.color}
+                  onCelebrate={handleCelebrate}
                 />
               ))}
             </AnimatePresence>
@@ -240,6 +322,9 @@ const Home = () => {
         type="danger"
         preventBackdropClose={true}
       />
+
+      {/* Confetti Celebration */}
+      <Confetti trigger={confettiTrigger} />
     </div>
   );
 };
