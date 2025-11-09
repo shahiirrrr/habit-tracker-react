@@ -109,7 +109,9 @@ export function getNoteStats(habit) {
   }
   
   const lengths = notes.map(note => note.content.length);
-  const wordCounts = notes.map(note => note.content.split(/\s+/).length);
+  const wordCounts = notes.map(note => 
+    note.content.trim() ? note.content.trim().split(/\s+/).length : 0
+  );
   
   return {
     total: totalNotes,

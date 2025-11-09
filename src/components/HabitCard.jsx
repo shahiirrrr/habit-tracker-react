@@ -191,7 +191,7 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate, onA
           <div className="mb-4">
             <div className="flex items-center gap-1 mb-2">
               <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">This Week</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">This Week (Click to add notes)</span>
             </div>
             <div className="flex gap-1">
               {weekProgress.map((day, index) => (
@@ -201,13 +201,25 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate, onA
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: index * 0.05, type: "spring", stiffness: 200 }}
                   whileHover={{ scale: 1.2, zIndex: 10 }}
-                  className={`flex-1 h-6 rounded cursor-pointer ${
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => day.completed && onAddNote(habit, day.date)}
+                  className={`flex-1 h-6 rounded relative ${
                     day.completed
-                      ? `bg-gradient-to-br ${gradientClass}`
-                      : 'bg-gray-200 dark:bg-gray-700'
+                      ? `bg-gradient-to-br ${gradientClass} cursor-pointer`
+                      : 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed'
                   } ${day.isToday ? 'ring-2 ring-gray-400 dark:ring-gray-500' : ''}`}
-                  title={day.date}
-                />
+                  title={`${day.date}${day.completed ? ' - Click to add/edit note' : ''}`}
+                >
+                  {/* Note indicator dot */}
+                  {day.completed && hasNoteForDate(habit, day.date) && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full border border-white dark:border-gray-800"
+                      title="Has note"
+                    />
+                  )}
+                </motion.div>
               ))}
             </div>
           </div>

@@ -232,7 +232,7 @@ const Home = () => {
             return {
               ...h,
               notes: {
-                ...h.notes,
+                ...(h.notes || {}),
                 [date]: content
               }
             };
@@ -245,7 +245,7 @@ const Home = () => {
       // Authenticated - use Firebase
       try {
         const updatedNotes = {
-          ...habit.notes,
+          ...(habit.notes || {}),
           [date]: content
         };
         await firebaseHabits.updateHabit(habit.id, { notes: updatedNotes });
@@ -265,11 +265,14 @@ const Home = () => {
   };
 
   const handleEditNoteFromHistory = (date, content) => {
-    const habit = notesHistoryModal.habit;
+    // Get the latest habit data from current habits array
+    const latestHabit = habits.find(h => h.id === notesHistoryModal.habit?.id);
+    if (!latestHabit) return;
+    
     setNotesHistoryModal({ isOpen: false, habit: null });
     setNoteModal({
       isOpen: true,
-      habit,
+      habit: latestHabit,
       date,
       existingNote: content
     });
@@ -284,7 +287,7 @@ const Home = () => {
       setLocalHabits(prevHabits =>
         prevHabits.map(h => {
           if (h.id === habitId) {
-            const newNotes = { ...h.notes };
+            const newNotes = { ...(h.notes || {}) };
             delete newNotes[date];
             return {
               ...h,
@@ -298,7 +301,7 @@ const Home = () => {
     } else {
       // Authenticated - use Firebase
       try {
-        const newNotes = { ...habit.notes };
+        const newNotes = { ...(habit.notes || {}) };
         delete newNotes[date];
         await firebaseHabits.updateHabit(habitId, { notes: newNotes });
         toast.success('Note deleted successfully!');
