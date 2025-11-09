@@ -1,15 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, Flame, Calendar, TrendingUp, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Flame, Calendar, TrendingUp, Sparkles, FileText, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 import { getTodayKey, calculateStreak, getCompletionRate, getWeekProgress } from '../utils/dateUtils';
+import { getNoteCount, hasNoteForDate } from '../utils/noteUtils';
 
-const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) => {
+const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate, onAddNote, onViewNotes }) => {
   const isCompletedToday = habit.completedDates?.includes(getTodayKey()) || false;
   const streak = calculateStreak(habit.completedDates || []);
   const weekProgress = getWeekProgress(habit.completedDates || []);
   const totalDays = habit.completedDates?.length || 0;
   const completionRate = getCompletionRate(habit.completedDates || [], habit.createdAt);
   const [showCelebration, setShowCelebration] = useState(false);
+  const noteCount = getNoteCount(habit);
+  const hasTodayNote = hasNoteForDate(habit, getTodayKey());
 
   const handleToggle = () => {
     const wasCompleted = isCompletedToday;
@@ -110,6 +113,20 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) =
           
           {/* Stats Row */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
+            {noteCount > 0 && (
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onViewNotes(habit)}
+                className="flex items-center gap-1 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                title="View journal entries"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span className="text-sm font-medium">{noteCount}</span>
+              </motion.button>
+            )}
             {streak > 0 && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -196,17 +213,18 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) =
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleToggle}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 relative overflow-hidden ${
-                isCompletedToday
-                  ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggle}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 relative overflow-hidden ${
+                  isCompletedToday
+                    ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
               {isCompletedToday ? (
                 <>
                   <motion.div
@@ -223,15 +241,32 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) =
                   <span>Mark Complete</span>
                 </>
               )}
-            </motion.button>
+              </motion.button>
 
+              {/* Add/Edit Note Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onAddNote(habit, getTodayKey())}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  hasTodayNote
+                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title={hasTodayNote ? 'Edit today\'s note' : 'Add a note'}
+              >
+                <FileText className="w-5 h-5" />
+              </motion.button>
+            </div>
+
+            {/* Delete Button */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onDelete(habit.id)}
-              className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 text-sm font-medium"
+              className="w-full px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 text-sm font-medium"
             >
-              Delete
+              Delete Habit
             </motion.button>
           </div>
         </div>
