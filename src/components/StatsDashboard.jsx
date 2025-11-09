@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { Target, CheckCircle2, Flame, TrendingUp } from 'lucide-react';
+import { getTodayKey, calculateStreak } from '../utils/dateUtils';
 
 const StatsDashboard = ({ habits }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKey();
   
   // Calculate stats
   const totalHabits = habits.length;
@@ -126,28 +127,6 @@ const StatsDashboard = ({ habits }) => {
     </div>
   );
 };
-
-function calculateStreak(completedDates) {
-  if (!completedDates || completedDates.length === 0) return 0;
-  const today = new Date().toISOString().split('T')[0];
-  const completedSet = new Set(completedDates);
-  if (!completedSet.has(today)) return 0;
-  
-  let streak = 1;
-  const todayDate = new Date(today);
-  let checkDate = new Date(todayDate);
-  
-  while (true) {
-    checkDate.setDate(checkDate.getDate() - 1);
-    const dateKey = checkDate.toISOString().split('T')[0];
-    if (completedSet.has(dateKey)) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
 
 export default StatsDashboard;
 

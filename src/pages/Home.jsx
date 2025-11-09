@@ -9,13 +9,17 @@ import MotivationalGreeting from '../components/MotivationalGreeting';
 import Confetti from '../components/Confetti';
 import GuestWarningBanner from '../components/GuestWarningBanner';
 import SettingsMenu from '../components/SettingsMenu';
+import Toast from '../components/Toast';
 import { StarDoodle, RocketDoodle, TrophyDoodle, SmileDoodle } from '../components/Doodles';
 import { useFirebaseHabits } from '../hooks/useFirebaseHabits';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../hooks/useToast';
+import { getTodayKey } from '../utils/dateUtils';
 
 const Home = () => {
   const { currentUser, isGuest, logout, exitGuestMode, deleteAccount } = useAuth();
+  const { toast, toastState, closeToast } = useToast();
   
   // Use Firebase for authenticated users, localStorage for guests
   const firebaseHabits = useFirebaseHabits(currentUser?.uid);
@@ -89,13 +93,13 @@ const Home = () => {
         });
       } catch (err) {
         console.error('Failed to add habit:', err);
-        alert('Failed to add habit. Please try again.');
+        toast.error('Failed to add habit. Please try again.');
       }
     }
   };
 
   const handleToggleHabit = async (id) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayKey();
     
     if (isGuest) {
       // Guest mode - update local storage
@@ -126,7 +130,7 @@ const Home = () => {
         await firebaseHabits.toggleHabitCompletion(id, today);
       } catch (err) {
         console.error('Failed to toggle habit:', err);
-        alert('Failed to update habit. Please try again.');
+        toast.error('Failed to update habit. Please try again.');
       }
     }
   };
@@ -153,9 +157,10 @@ const Home = () => {
         try {
           await firebaseHabits.deleteHabit(confirmModal.habitId);
           setConfirmModal({ isOpen: false, habitId: null, habitName: '' });
+          toast.success(`Habit "${confirmModal.habitName}" deleted successfully!`);
         } catch (err) {
           console.error('Failed to delete habit:', err);
-          alert('Failed to delete habit. Please try again.');
+          toast.error('Failed to delete habit. Please try again.');
         }
       }
     }
@@ -186,9 +191,13 @@ const Home = () => {
       
       // Check if re-authentication is needed
       if (err.code === 'auth/requires-recent-login') {
-        alert('For security, please log out and log back in before deleting your account.');
+        toast.error('For security, please log out and log back in before deleting your account.');
+        // Automatically logout after 3 seconds
+        setTimeout(() => {
+          handleLogout();
+        }, 3000);
       } else {
-        alert('Failed to delete account. Please try again or contact support.');
+        toast.error('Failed to delete account. Please try again or contact support.');
       }
       setDeleteAccountModal(false);
     }
@@ -305,7 +314,7 @@ const Home = () => {
             completionRate={
               habits.length > 0
                 ? Math.round(
-                    (habits.filter(h => h.completedDates?.includes(new Date().toISOString().split('T')[0])).length /
+                    (habits.filter(h => h.completedDates?.includes(getTodayKey())).length /
                       habits.length) *
                       100
                   )
@@ -485,6 +494,14 @@ const Home = () => {
 
       {/* Confetti Celebration */}
       <Confetti trigger={confettiTrigger} />
+
+      {/* Toast Notifications */}
+      <Toast
+        message={toastState.message}
+        type={toastState.type}
+        isOpen={toastState.isOpen}
+        onClose={closeToast}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Circle, Flame, Calendar, TrendingUp, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { getTodayKey, calculateStreak, getCompletionRate, getWeekProgress } from '../utils/dateUtils';
 
 const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) => {
   const isCompletedToday = habit.completedDates?.includes(getTodayKey()) || false;
@@ -238,91 +239,6 @@ const HabitCard = ({ habit, onToggle, onDelete, color = 'blue', onCelebrate }) =
     </motion.div>
   );
 };
-
-/**
- * Get today's date as a string key (YYYY-MM-DD)
- */
-function getTodayKey() {
-  return new Date().toISOString().split('T')[0];
-}
-
-/**
- * Calculate the current streak from completed dates
- * Streak is consecutive days up to and including today
- * If today is not completed, streak is 0
- */
-function calculateStreak(completedDates) {
-  if (!completedDates || completedDates.length === 0) return 0;
-
-  const today = getTodayKey();
-  const completedSet = new Set(completedDates);
-  
-  // If today is not completed, streak is 0
-  if (!completedSet.has(today)) return 0;
-
-  // Start from today and count backwards
-  let streak = 1;
-  const todayDate = new Date(today);
-  let checkDate = new Date(todayDate);
-  
-  // Check previous days consecutively
-  while (true) {
-    checkDate.setDate(checkDate.getDate() - 1);
-    const dateKey = checkDate.toISOString().split('T')[0];
-    
-    if (completedSet.has(dateKey)) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
-
-/**
- * Get completion rate based on days since creation
- */
-function getCompletionRate(completedDates, createdAt) {
-  if (!completedDates || completedDates.length === 0) return 0;
-  if (!createdAt) return 0;
-  
-  const created = new Date(createdAt);
-  const today = new Date();
-  const daysSinceCreation = Math.ceil((today - created) / (1000 * 60 * 60 * 24)) + 1;
-  
-  if (daysSinceCreation <= 1) return 0;
-  
-  // Use unique dates to avoid counting multiple completions per day
-  const uniqueDates = new Set(completedDates).size;
-  const rate = Math.round((uniqueDates / daysSinceCreation) * 100);
-  
-  return Math.min(rate, 100); // Cap at 100%
-}
-
-/**
- * Get week progress (last 7 days)
- */
-function getWeekProgress(completedDates) {
-  const weekProgress = [];
-  const today = new Date();
-  const completedSet = new Set(completedDates);
-  
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateKey = date.toISOString().split('T')[0];
-    const isToday = i === 0;
-    
-    weekProgress.push({
-      date: dateKey,
-      completed: completedSet.has(dateKey),
-      isToday,
-    });
-  }
-  
-  return weekProgress;
-}
 
 export default HabitCard;
 
