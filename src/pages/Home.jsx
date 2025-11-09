@@ -10,6 +10,8 @@ import Confetti from '../components/Confetti';
 import GuestWarningBanner from '../components/GuestWarningBanner';
 import SettingsMenu from '../components/SettingsMenu';
 import Toast from '../components/Toast';
+import AddNoteModal from '../components/AddNoteModal';
+import NotesHistoryModal from '../components/NotesHistoryModal';
 import { StarDoodle, RocketDoodle, TrophyDoodle, SmileDoodle } from '../components/Doodles';
 import { useFirebaseHabits } from '../hooks/useFirebaseHabits';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -34,6 +36,10 @@ const Home = () => {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, habitId: null, habitName: '' });
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+  
+  // Note modals state
+  const [noteModal, setNoteModal] = useState({ isOpen: false, habit: null, date: null, existingNote: null });
+  const [notesHistoryModal, setNotesHistoryModal] = useState({ isOpen: false, habit: null });
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -200,6 +206,106 @@ const Home = () => {
         toast.error('Failed to delete account. Please try again or contact support.');
       }
       setDeleteAccountModal(false);
+    }
+  };
+
+  // Note handlers
+  const handleAddNote = (habit, date) => {
+    const existingNote = habit.notes?.[date] || null;
+    setNoteModal({
+      isOpen: true,
+      habit,
+      date,
+      existingNote
+    });
+  };
+
+  const handleSaveNote = async (date, content) => {
+    const habit = noteModal.habit;
+    if (!habit) return;
+
+    if (isGuest) {
+      // Guest mode - update local storage
+      setLocalHabits(prevHabits =>
+        prevHabits.map(h => {
+          if (h.id === habit.id) {
+            return {
+              ...h,
+              notes: {
+                ...h.notes,
+                [date]: content
+              }
+            };
+          }
+          return h;
+        })
+      );
+      toast.success('Note saved successfully!');
+    } else {
+      // Authenticated - use Firebase
+      try {
+        const updatedNotes = {
+          ...habit.notes,
+          [date]: content
+        };
+        await firebaseHabits.updateHabit(habit.id, { notes: updatedNotes });
+        toast.success('Note saved successfully!');
+      } catch (err) {
+        console.error('Failed to save note:', err);
+        toast.error('Failed to save note. Please try again.');
+      }
+    }
+  };
+
+  const handleViewNotes = (habit) => {
+    setNotesHistoryModal({
+      isOpen: true,
+      habit
+    });
+  };
+
+  const handleEditNoteFromHistory = (date, content) => {
+    const habit = notesHistoryModal.habit;
+    setNotesHistoryModal({ isOpen: false, habit: null });
+    setNoteModal({
+      isOpen: true,
+      habit,
+      date,
+      existingNote: content
+    });
+  };
+
+  const handleDeleteNote = async (habitId, date) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    if (isGuest) {
+      // Guest mode - update local storage
+      setLocalHabits(prevHabits =>
+        prevHabits.map(h => {
+          if (h.id === habitId) {
+            const newNotes = { ...h.notes };
+            delete newNotes[date];
+            return {
+              ...h,
+              notes: newNotes
+            };
+          }
+          return h;
+        })
+      );
+      toast.success('Note deleted successfully!');
+    } else {
+      // Authenticated - use Firebase
+      try {
+        const newNotes = { ...habit.notes };
+        delete newNotes[date];
+        await firebaseHabits.updateHabit(habitId, { notes: newNotes });
+        toast.success('Note deleted successfully!');
+      } catch (err) {
+        console.error('Failed to delete note:', err);
+        toast.error('Failed to delete note. Please try again.');
+      }
     }
   };
 
@@ -450,6 +556,8 @@ const Home = () => {
                   onDelete={handleDeleteHabit}
                   color={habit.color}
                   onCelebrate={handleCelebrate}
+                  onAddNote={handleAddNote}
+                  onViewNotes={handleViewNotes}
                 />
               ))}
             </AnimatePresence>
@@ -501,6 +609,25 @@ const Home = () => {
         type={toastState.type}
         isOpen={toastState.isOpen}
         onClose={closeToast}
+      />
+
+      {/* Add/Edit Note Modal */}
+      <AddNoteModal
+        isOpen={noteModal.isOpen}
+        onClose={() => setNoteModal({ isOpen: false, habit: null, date: null, existingNote: null })}
+        onSave={handleSaveNote}
+        habitName={noteModal.habit?.name || ''}
+        date={noteModal.date || ''}
+        existingNote={noteModal.existingNote}
+      />
+
+      {/* Notes History Modal */}
+      <NotesHistoryModal
+        isOpen={notesHistoryModal.isOpen}
+        onClose={() => setNotesHistoryModal({ isOpen: false, habit: null })}
+        habit={notesHistoryModal.habit}
+        onEditNote={handleEditNoteFromHistory}
+        onDeleteNote={handleDeleteNote}
       />
     </div>
   );
