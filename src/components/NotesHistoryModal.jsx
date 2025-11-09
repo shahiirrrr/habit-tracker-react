@@ -213,7 +213,7 @@ const NotesHistoryModal = ({ isOpen, onClose, habit, onEditNote, onDeleteNote })
                     {/* Note Footer */}
                     <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {note.content.split(/\s+/).length} words
+                        {note.content.trim() ? note.content.trim().split(/\s+/).length : 0} words
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">•</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
